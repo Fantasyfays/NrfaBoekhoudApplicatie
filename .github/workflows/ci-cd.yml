@@ -8,26 +8,29 @@ on:
     branches:
       - main
 
-env:
-  ACTIONS_RUNNER_NODE_VERSION: '20' # Stel Node.js versie 20 in voor de hele workflow
-
 jobs:
   build-and-analyze:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Haal de code op
+      # 1. Stel expliciet Node.js 20 in
+      - name: Use Node.js 20
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      # 2. Haal de code op
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2. Installeer JDK 17
+      # 3. Installeer JDK 17
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      # 3. Cache Maven dependencies
+      # 4. Cache Maven dependencies
       - name: Cache Maven dependencies
         uses: actions/cache@v3
         with:
@@ -36,7 +39,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven
 
-      # 4. Build, test, en voer SonarCloud-analyse uit
+      # 5. Build, test, en voer SonarCloud-analyse uit
       - name: Build, Test, and SonarCloud Analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
