@@ -8,10 +8,10 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
-public class UserTest {
+ class UserTest {
 
     @Test
-    public void testAddRole() {
+     void testAddRole() {
         User user = new User();
         Role role = new Role();
         role.setName(RoleType.ADMIN);
