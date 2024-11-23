@@ -48,6 +48,6 @@ jobs:
         run: |
           mvn sonar:sonar \
             -Dsonar.projectKey=Fantasyfays_NrfaBoekhoudApplicatie \
-            -Dsonar.organization=Fantasyfays \
+            -Dsonar.organization=fantasyfays \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.login=${{ secrets.SONAR_TOKEN }}
