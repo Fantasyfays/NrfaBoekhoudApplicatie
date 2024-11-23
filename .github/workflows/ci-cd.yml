@@ -8,6 +8,9 @@ on:
     branches:
       - main
 
+env:
+  ACTIONS_RUNNER_NODE_VERSION: '20' # Stel Node.js versie 20 in voor de hele workflow
+
 jobs:
   build-and-analyze:
     runs-on: ubuntu-latest
