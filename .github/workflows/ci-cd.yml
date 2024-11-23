@@ -16,6 +16,8 @@ jobs:
       # 1. Haal de code op
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          node-version: '20'
 
       # 2. Installeer JDK 17
       - name: Set up JDK
@@ -23,6 +25,7 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          node-version: '20'
 
       # 3. Cache Maven dependencies
       - name: Cache Maven dependencies
@@ -32,6 +35,7 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven
+          node-version: '20'
 
       # 4. Build, test, en voer SonarCloud-analyse uit
       - name: Build, Test, and SonarCloud Analysis
