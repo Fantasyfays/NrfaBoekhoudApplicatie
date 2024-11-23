@@ -10,7 +10,6 @@ class NrfaBoekhoudApplicatieApplicationTests {
     @Test
     @Disabled("Deze test is momenteel niet geïmplementeerd")
     void contextLoads() {
-        // Te implementeren
+        // Deze test controleert of de applicatiecontext correct laadt.
     }
-
 }
