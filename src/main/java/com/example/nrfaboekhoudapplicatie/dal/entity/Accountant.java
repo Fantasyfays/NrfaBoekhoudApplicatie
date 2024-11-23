@@ -33,6 +33,4 @@ public class Accountant {
     @Column
     private String phoneNumber;
 
-    @OneToMany(mappedBy = "accountant", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Client> clients = new ArrayList<>();
 }
