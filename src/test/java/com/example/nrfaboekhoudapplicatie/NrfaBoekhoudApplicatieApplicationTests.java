@@ -8,6 +8,8 @@ class NrfaBoekhoudApplicatieApplicationTests {
 
     @Test
     void contextLoads() {
+        throw new UnsupportedOperationException("Implementatie moet nog toegevoegd worden.");
     }
+
 
 }
