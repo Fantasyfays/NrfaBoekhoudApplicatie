@@ -1,6 +1,5 @@
 package com.example.nrfaboekhoudapplicatie;
 
-import com.example.nrfaboekhoudapplicatie.dal.entity.Role;
 import com.example.nrfaboekhoudapplicatie.dal.entity.User;
 import com.example.nrfaboekhoudapplicatie.enums.RoleType;
 import org.junit.jupiter.api.Test;
