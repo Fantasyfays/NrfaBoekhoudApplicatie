@@ -8,23 +8,22 @@ import java.util.HashSet;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-
- class UserTest {
-
-     @Test
-     void testRolesInitialized() {
-         User user = new User();
-         assertEquals(new HashSet<>(), user.getRoles(),"roles moet leeg geinitialeesrd zijn");
-     }
+class UserTest {
 
     @Test
-     void testAddRole() {
+    void testRolesInitialized() {
         User user = new User();
-        Role role = new Role();
-        role.setName(RoleType.ADMIN);
+        assertEquals(new HashSet<>(), user.getRoles(), "Roles moet leeg geïnitialiseerd zijn");
+    }
 
-        user.getRoles().add(role);
+    @Test
+    void testAddRole() {
+        User user = new User();
+        user.setRoles(new HashSet<>());
 
-        assertEquals(1, user.getRoles().size(), "roles moet 1 zijn");
+        user.getRoles().add(RoleType.ADMIN);
+
+        assertEquals(1, user.getRoles().size(), "Roles moet 1 zijn");
+        assertEquals(RoleType.ADMIN, user.getRoles().iterator().next(), "Role moet ADMIN zijn");
     }
 }

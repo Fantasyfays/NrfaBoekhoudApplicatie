@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
+import java.util.HashSet;
 import java.util.Set;
 
 @Data
@@ -23,5 +24,6 @@ public class User {
 
     @ElementCollection(fetch = FetchType.EAGER)
     @Enumerated(EnumType.STRING)
-    private Set<RoleType> roles;
+    private Set<RoleType> roles = new HashSet<>();
+
 }
