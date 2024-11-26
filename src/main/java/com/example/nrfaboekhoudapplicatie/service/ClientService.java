@@ -5,8 +5,8 @@ import com.example.nrfaboekhoudapplicatie.dal.DTO.ClientResponseDTO;
 import com.example.nrfaboekhoudapplicatie.dal.DTO.ClientUpdateDTO;
 import com.example.nrfaboekhoudapplicatie.dal.entity.Accountant;
 import com.example.nrfaboekhoudapplicatie.dal.entity.Client;
-import com.example.nrfaboekhoudapplicatie.dal.repository.AccountantRepository;
-import com.example.nrfaboekhoudapplicatie.dal.repository.ClientRepository;
+import com.example.nrfaboekhoudapplicatie.service.dalInterfaces.IAccountantDAL;
+import com.example.nrfaboekhoudapplicatie.service.dalInterfaces.IClientDAL;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,21 +17,25 @@ import java.util.stream.Collectors;
 @Service
 public class ClientService {
 
-    private final ClientRepository clientRepository;
-    private final AccountantRepository accountantRepository;
+    private final IClientDAL clientDAL;
+    private final IAccountantDAL accountantDAL;
 
-    public ClientService(ClientRepository clientRepository, AccountantRepository accountantRepository) {
-        this.clientRepository = clientRepository;
-        this.accountantRepository = accountantRepository;
+    public ClientService(IClientDAL clientDAL, IAccountantDAL accountantDAL) {
+        this.clientDAL = clientDAL;
+        this.accountantDAL = accountantDAL;
     }
 
     public ClientResponseDTO createClient(ClientCreateDTO dto) {
-        if (clientRepository.existsByEmail(dto.getEmail())) {
+        if (clientDAL.existsByEmail(dto.getEmail())) {
             throw new IllegalArgumentException("Email is already in use.");
         }
 
-        Accountant accountant = accountantRepository.findById(dto.getAccountantId())
+        Accountant accountant = accountantDAL.findById(dto.getAccountantId())
                 .orElseThrow(() -> new NoSuchElementException("Accountant not found."));
+
+        if (dto.getPhoneNumber() != null && !dto.getPhoneNumber().matches("^\\+?[0-9]*$")) {
+            throw new IllegalArgumentException("Phone number must contain only digits.");
+        }
 
         Client client = new Client();
         client.setFirstName(dto.getFirstName());
@@ -40,7 +44,7 @@ public class ClientService {
         client.setPhoneNumber(dto.getPhoneNumber());
         client.setAccountant(accountant);
 
-        Client savedClient = clientRepository.save(client);
+        Client savedClient = clientDAL.save(client);
 
         return new ClientResponseDTO(
                 savedClient.getId(),
@@ -53,7 +57,7 @@ public class ClientService {
     }
 
     public Optional<ClientResponseDTO> getClientById(Long id) {
-        return clientRepository.findById(id)
+        return clientDAL.findById(id)
                 .map(client -> new ClientResponseDTO(
                         client.getId(),
                         client.getFirstName(),
@@ -65,7 +69,7 @@ public class ClientService {
     }
 
     public List<ClientResponseDTO> getAllClients() {
-        return clientRepository.findAll().stream()
+        return clientDAL.findAll().stream()
                 .map(client -> new ClientResponseDTO(
                         client.getId(),
                         client.getFirstName(),
@@ -78,7 +82,7 @@ public class ClientService {
     }
 
     public Optional<ClientResponseDTO> updateClient(Long id, ClientUpdateDTO dto) {
-        return clientRepository.findById(id).map(client -> {
+        return clientDAL.findById(id).map(client -> {
             if (dto.getFirstName() != null) {
                 client.setFirstName(dto.getFirstName());
             }
@@ -86,16 +90,19 @@ public class ClientService {
                 client.setLastName(dto.getLastName());
             }
             if (dto.getEmail() != null) {
-                if (!dto.getEmail().equals(client.getEmail()) && clientRepository.existsByEmail(dto.getEmail())) {
+                if (!dto.getEmail().equals(client.getEmail()) && clientDAL.existsByEmail(dto.getEmail())) {
                     throw new IllegalArgumentException("Email is already in use.");
                 }
                 client.setEmail(dto.getEmail());
             }
             if (dto.getPhoneNumber() != null) {
+                if (!dto.getPhoneNumber().matches("^\\+?[0-9]*$")) {
+                    throw new IllegalArgumentException("Phone number must contain only digits.");
+                }
                 client.setPhoneNumber(dto.getPhoneNumber());
             }
 
-            Client updatedClient = clientRepository.save(client);
+            Client updatedClient = clientDAL.save(client);
             return new ClientResponseDTO(
                     updatedClient.getId(),
                     updatedClient.getFirstName(),
@@ -108,9 +115,9 @@ public class ClientService {
     }
 
     public void deleteClient(Long id) {
-        if (!clientRepository.existsById(id)) {
+        if (!clientDAL.existsById(id)) {
             throw new NoSuchElementException("Client not found.");
         }
-        clientRepository.deleteById(id);
+        clientDAL.deleteById(id);
     }
 }

@@ -52,6 +52,10 @@ public class UserService {
     }
 
     public UserDTO createUser(CreateUserDTO createUserDTO) {
+        if (userDAL.findByUsername(createUserDTO.getUsername()).isPresent()) {
+            throw new IllegalArgumentException("Username already exists.");
+        }
+
         User user = new User();
         user.setUsername(createUserDTO.getUsername());
         user.setPassword(passwordEncoder.encode(createUserDTO.getPassword()));
@@ -67,36 +71,42 @@ public class UserService {
 
     public Optional<UserDTO> updateUser(Long id, UpdateUserDTO updateUserDTO) {
         Optional<User> existingUser = userDAL.findById(id);
-
-        if (existingUser.isPresent()) {
-            User user = existingUser.get();
-            user.setUsername(updateUserDTO.getUsername());
-
-            if (updateUserDTO.getPassword() != null && !updateUserDTO.getPassword().isEmpty()) {
-                user.setPassword(passwordEncoder.encode(updateUserDTO.getPassword()));
-            }
-
-            if (updateUserDTO.getRoles() != null) {
-                user.setRoles(updateUserDTO.getRoles());
-            }
-
-            User updatedUser = userDAL.saveUser(user);
-            return Optional.of(new UserDTO(
-                    updatedUser.getId(),
-                    updatedUser.getUsername(),
-                    updatedUser.getRoles()
-            ));
+        if (existingUser.isEmpty()) {
+            throw new IllegalArgumentException("User with the given ID does not exist.");
         }
 
-        return Optional.empty();
+        User user = existingUser.get();
+
+        if (!user.getUsername().equals(updateUserDTO.getUsername())) {
+            if (userDAL.findByUsername(updateUserDTO.getUsername()).isPresent()) {
+                throw new IllegalArgumentException("Username already exists.");
+            }
+            user.setUsername(updateUserDTO.getUsername());
+        }
+
+        if (updateUserDTO.getPassword() != null && !updateUserDTO.getPassword().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(updateUserDTO.getPassword()));
+        }
+
+        if (updateUserDTO.getRoles() != null) {
+            user.setRoles(updateUserDTO.getRoles());
+        }
+
+        User updatedUser = userDAL.saveUser(user);
+        return Optional.of(new UserDTO(
+                updatedUser.getId(),
+                updatedUser.getUsername(),
+                updatedUser.getRoles()
+        ));
     }
 
     public boolean deleteUser(Long id) {
         Optional<User> user = userDAL.findById(id);
-        if (user.isPresent()) {
-            userDAL.deleteUser(id);
-            return true;
+        if (user.isEmpty()) {
+            throw new IllegalArgumentException("User with the given ID does not exist.");
         }
-        return false;
+
+        userDAL.deleteUser(id);
+        return true;
     }
 }

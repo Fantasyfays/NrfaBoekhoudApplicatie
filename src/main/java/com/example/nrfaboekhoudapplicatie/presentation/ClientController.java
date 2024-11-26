@@ -4,6 +4,7 @@ import com.example.nrfaboekhoudapplicatie.dal.DTO.ClientCreateDTO;
 import com.example.nrfaboekhoudapplicatie.dal.DTO.ClientResponseDTO;
 import com.example.nrfaboekhoudapplicatie.dal.DTO.ClientUpdateDTO;
 import com.example.nrfaboekhoudapplicatie.service.ClientService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,7 +22,7 @@ public class ClientController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity<ClientResponseDTO> createClient(@RequestBody ClientCreateDTO dto) {
+    public ResponseEntity<ClientResponseDTO> createClient(@Valid @RequestBody ClientCreateDTO dto) {
         return new ResponseEntity<>(clientService.createClient(dto), HttpStatus.CREATED);
     }
 
@@ -40,7 +41,7 @@ public class ClientController {
     @PutMapping("/update/{id}")
     public ResponseEntity<ClientResponseDTO> updateClient(
             @PathVariable Long id,
-            @RequestBody ClientUpdateDTO dto) {
+            @Valid @RequestBody ClientUpdateDTO dto) {
         return clientService.updateClient(id, dto)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
