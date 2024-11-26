@@ -1,6 +1,10 @@
 package com.example.nrfaboekhoudapplicatie.dal.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -17,22 +21,24 @@ public class Accountant {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @NotBlank(message = "Username is required")
+    @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
     private String username;
 
-    @Column(nullable = false)
+    @NotBlank(message = "Password is required")
+    @Size(min = 8, message = "Password must be at least 8 characters long")
     private String password;
 
-    @Column(nullable = false)
+    @NotBlank(message = "Company name is required")
     private String companyName;
 
-    @Column(nullable = false, unique = true)
+    @NotBlank(message = "Email is required")
+    @Email(message = "Email should be valid")
     private String email;
 
-    @Column
+    @Pattern(regexp = "^\\+?[0-9]*$", message = "Phone number must contain only digits")
     private String phoneNumber;
 
     @OneToMany(mappedBy = "accountant", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Client> clients;
-
 }

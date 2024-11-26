@@ -31,6 +31,10 @@ public class ClientDAL implements IClientDAL {
     public Optional<Client> findById(Long id) {
         return clientRepository.findById(id);
     }
+    @Override
+    public boolean existsById(Long id) {
+        return clientRepository.existsById(id); // Implementatie toegevoegd
+    }
 
     @Override
     public List<Client> findAll() {

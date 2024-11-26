@@ -13,4 +13,5 @@ public interface IClientDAL {
     Optional<Client> findByEmail(String email);
     boolean existsByEmail(String email);
     List<Client> findByAccountantId(Long accountantId);
+    boolean existsById(Long id);
 }
