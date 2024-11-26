@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -29,5 +31,8 @@ public class Accountant {
 
     @Column
     private String phoneNumber;
+
+    @OneToMany(mappedBy = "accountant", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Client> clients;
 
 }
