@@ -1,18 +1,15 @@
 package com.example.nrfaboekhoudapplicatie.dal.DTO;
 
-import com.example.nrfaboekhoudapplicatie.enums.RoleType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Set;
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserResponseDTO {
+public class ClientListDTO {
     private Long id;
-    private String username;
-    private Set<RoleType> roles;
-    private String token;
+    private String firstName;
+    private String lastName;
+    private String email;
 }

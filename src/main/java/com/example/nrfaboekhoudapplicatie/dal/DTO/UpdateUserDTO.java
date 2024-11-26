@@ -12,6 +12,6 @@ import java.util.Set;
 @AllArgsConstructor
 public class UpdateUserDTO {
     private String username;
-    private String password; // Optioneel voor wachtwoordwijziging
+    private String password;
     private Set<RoleType> roles;
 }
