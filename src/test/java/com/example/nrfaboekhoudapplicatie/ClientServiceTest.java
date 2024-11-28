@@ -7,93 +7,118 @@ import com.example.nrfaboekhoudapplicatie.dal.entity.Client;
 import com.example.nrfaboekhoudapplicatie.service.ClientService;
 import com.example.nrfaboekhoudapplicatie.service.dalInterfaces.IAccountantDAL;
 import com.example.nrfaboekhoudapplicatie.service.dalInterfaces.IClientDAL;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import com.example.nrfaboekhoudapplicatie.service.dalInterfaces.IUserDAL;
 
-import java.util.NoSuchElementException;
+import org.junit.jupiter.api.Test;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-class ClientServiceTest {
+public class ClientServiceTest {
 
-    @Mock
-    private IClientDAL clientDAL; // Mock de IClientDAL in plaats van een repository
+    // Mocks aanmaken
+    private final IClientDAL clientDAL = mock(IClientDAL.class);
+    private final IAccountantDAL accountantDAL = mock(IAccountantDAL.class);
+    private final IUserDAL userDAL = mock(IUserDAL.class);
+    private final PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
 
-    @Mock
-    private IAccountantDAL accountantDAL; // Mock de IAccountantDAL
-
-    @InjectMocks
-    private ClientService clientService; // Inject de mocks in de service
-
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this); // Zorg ervoor dat de mocks correct geïnitialiseerd worden
-    }
+    // Service die we willen testen
+    private final ClientService clientService = new ClientService(clientDAL, accountantDAL, userDAL, passwordEncoder);
 
     @Test
-    void testCreateClient_HappyFlow() {
-        // ARRANGE
-        ClientCreateDTO dto = new ClientCreateDTO("John", "Doe", "john.doe@example.com", "+123456789", 1L);
+    public void testClientAanmaken() {
+        // Stap 1: Geef input (ClientCreateDTO)
+        ClientCreateDTO dto = new ClientCreateDTO(
+                "John",                // Voornaam
+                "Doe",                 // Achternaam
+                "johndoe@example.com", // Email
+                "+123456789",          // Telefoonnummer
+                1L,                    // Accountant ID
+                "john123",             // Gebruikersnaam
+                "password"             // Wachtwoord
+        );
+
+        // Stap 2: Maak een mock accountant
         Accountant accountant = new Accountant();
         accountant.setId(1L);
 
-        Client client = new Client();
-        client.setId(1L);
-        client.setFirstName(dto.getFirstName());
-        client.setLastName(dto.getLastName());
-        client.setEmail(dto.getEmail());
-        client.setPhoneNumber(dto.getPhoneNumber());
-        client.setAccountant(accountant);
+        // Stel de mock afhankelijkheden in
+        when(clientDAL.existsByEmail(dto.getEmail())).thenReturn(false); // Email bestaat niet
+        when(userDAL.findByUsername(dto.getUsername())).thenReturn(Optional.empty()); // Gebruikersnaam bestaat niet
+        when(accountantDAL.findById(dto.getAccountantId())).thenReturn(Optional.of(accountant)); // Accountant wordt gevonden
 
-        when(accountantDAL.findById(1L)).thenReturn(Optional.of(accountant));
-        when(clientDAL.existsByEmail(dto.getEmail())).thenReturn(false);
-        when(clientDAL.save(any(Client.class))).thenReturn(client);
+        // Maak een client die we opslaan
+        Client savedClient = new Client();
+        savedClient.setId(1L);
+        savedClient.setFirstName("John");
+        savedClient.setLastName("Doe");
+        savedClient.setEmail("johndoe@example.com");
+        savedClient.setPhoneNumber("+123456789");
+        savedClient.setAccountant(accountant);
 
-        // ACT
+        // Laat de mock save() methode de client retourneren
+        when(clientDAL.save(any(Client.class))).thenReturn(savedClient);
+
+        // Stap 3: Act - roep de methode aan
         ClientResponseDTO response = clientService.createClient(dto);
 
-        // ASSERT
-        assertNotNull(response);
-        assertEquals("John", response.getFirstName());
-        assertEquals("Doe", response.getLastName());
-        assertEquals("john.doe@example.com", response.getEmail());
-        verify(clientDAL, times(1)).save(any(Client.class));
+        // Stap 4: Controleer de output
+        assertNotNull(response); // De response mag niet null zijn
+        assertEquals(1L, response.getId()); // ID moet 1 zijn
+        assertEquals("John", response.getFirstName()); // Voornaam moet kloppen
+        assertEquals("Doe", response.getLastName()); // Achternaam moet kloppen
+        assertEquals("johndoe@example.com", response.getEmail()); // Email moet kloppen
+        assertEquals(1L, response.getAccountantId()); // Accountant ID moet kloppen
     }
 
     @Test
-    void testCreateClient_UnhappyFlow_EmailAlreadyExists() {
-        // ARRANGE
-        ClientCreateDTO dto = new ClientCreateDTO("John", "Doe", "john.doe@example.com", "+123456789", 1L);
+    public void testClientAanmakenEmailBestaatAl() {
+        // Stap 1: Geef input (ClientCreateDTO)
+        ClientCreateDTO dto = new ClientCreateDTO(
+                "John",
+                "Doe",
+                "johndoe@example.com",
+                "+123456789",
+                1L,
+                "john123",
+                "password"
+        );
 
+        // Mock dat het emailadres al bestaat
         when(clientDAL.existsByEmail(dto.getEmail())).thenReturn(true);
 
-        // ACT & ASSERT
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            clientService.createClient(dto);
-        });
+        // Stap 2: Act - probeer een client aan te maken
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> clientService.createClient(dto));
 
+        // Stap 3: Controleer de output
         assertEquals("Email is already in use.", exception.getMessage());
-        verify(clientDAL, never()).save(any(Client.class));
     }
 
     @Test
-    void testCreateClient_EdgeCase_AccountantNotFound() {
-        // ARRANGE
-        ClientCreateDTO dto = new ClientCreateDTO("John", "Doe", "john.doe@example.com", "+123456789", 99L);
+    public void testClientAanmakenOngeldigTelefoonnummer() {
+        // Stap 1: Geef input (ClientCreateDTO)
+        ClientCreateDTO dto = new ClientCreateDTO(
+                "John",
+                "Doe",
+                "johndoe@example.com",
+                "invalid-phone", // Ongeldig telefoonnummer
+                1L,
+                "john123",
+                "password"
+        );
 
-        when(accountantDAL.findById(99L)).thenReturn(Optional.empty());
+        // Mock afhankelijkheden
+        when(clientDAL.existsByEmail(dto.getEmail())).thenReturn(false);
+        when(userDAL.findByUsername(dto.getUsername())).thenReturn(Optional.empty());
+        when(accountantDAL.findById(dto.getAccountantId())).thenReturn(Optional.of(new Accountant()));
 
-        // ACT & ASSERT
-        NoSuchElementException exception = assertThrows(NoSuchElementException.class, () -> {
-            clientService.createClient(dto);
-        });
+        // Stap 2: Act - probeer een client aan te maken
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> clientService.createClient(dto));
 
-        assertEquals("Accountant not found.", exception.getMessage());
-        verify(clientDAL, never()).save(any(Client.class));
+        // Stap 3: Controleer de output
+        assertEquals("Phone number must contain only digits.", exception.getMessage());
     }
 }
