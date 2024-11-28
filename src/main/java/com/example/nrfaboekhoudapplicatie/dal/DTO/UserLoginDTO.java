@@ -9,9 +9,13 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserLoginDTO {
+
     @NotBlank(message = "Username is required")
     private String username;
 
     @NotBlank(message = "Password is required")
     private String password;
+
+    @NotBlank(message = "Role is required")
+    private String role; // Bijvoorbeeld: 'ADMIN', 'ACCOUNTANT', of 'CLIENT'
 }

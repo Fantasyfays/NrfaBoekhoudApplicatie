@@ -3,7 +3,9 @@ package com.example.nrfaboekhoudapplicatie.service;
 import com.example.nrfaboekhoudapplicatie.dal.DTO.CreateUserDTO;
 import com.example.nrfaboekhoudapplicatie.dal.DTO.UpdateUserDTO;
 import com.example.nrfaboekhoudapplicatie.dal.DTO.UserDTO;
+import com.example.nrfaboekhoudapplicatie.dal.DTO.UserLoginDTO;
 import com.example.nrfaboekhoudapplicatie.dal.entity.User;
+import com.example.nrfaboekhoudapplicatie.exceptions.UsernameAlreadyExistsException;
 import com.example.nrfaboekhoudapplicatie.service.dalInterfaces.IUserDAL;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -52,8 +54,10 @@ public class UserService {
     }
 
     public UserDTO createUser(CreateUserDTO createUserDTO) {
+        System.out.println("Attempting to create user with username: " + createUserDTO.getUsername());
+
         if (userDAL.findByUsername(createUserDTO.getUsername()).isPresent()) {
-            throw new IllegalArgumentException("Username already exists.");
+            throw new UsernameAlreadyExistsException("Username '" + createUserDTO.getUsername() + "' already exists.");
         }
 
         User user = new User();
@@ -62,12 +66,9 @@ public class UserService {
         user.setRoles(createUserDTO.getRoles());
 
         User savedUser = userDAL.saveUser(user);
-        return new UserDTO(
-                savedUser.getId(),
-                savedUser.getUsername(),
-                savedUser.getRoles()
-        );
+        return new UserDTO(savedUser.getId(), savedUser.getUsername(), savedUser.getRoles());
     }
+
 
     public Optional<UserDTO> updateUser(Long id, UpdateUserDTO updateUserDTO) {
         Optional<User> existingUser = userDAL.findById(id);
@@ -109,4 +110,24 @@ public class UserService {
         userDAL.deleteUser(id);
         return true;
     }
+
+    public UserDTO loginUser(UserLoginDTO loginDTO) {
+        Optional<User> user = userDAL.findByUsernameAndRole(loginDTO.getUsername(), loginDTO.getRole());
+
+        if (user.isEmpty()) {
+            throw new IllegalArgumentException("Invalid username, password, or role.");
+        }
+
+        User foundUser = user.get();
+
+        if (!passwordEncoder.matches(loginDTO.getPassword(), foundUser.getPassword())) {
+            throw new IllegalArgumentException("Invalid username or password.");
+        }
+
+        return new UserDTO(foundUser.getId(), foundUser.getUsername(), foundUser.getRoles());
+    }
+
+
+
+
 }

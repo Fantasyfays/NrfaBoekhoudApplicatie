@@ -12,18 +12,20 @@ import lombok.NoArgsConstructor;
 import java.util.HashSet;
 import java.util.Set;
 
+@Entity
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
 @Table(name = "users")
 public class User {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @NotBlank(message = "Username is required")
     @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
+    @Column(unique = true, nullable = false) // Unieke username
     private String username;
 
     @NotBlank(message = "Password is required")
@@ -34,4 +36,7 @@ public class User {
     @Enumerated(EnumType.STRING)
     @NotEmpty(message = "Roles must not be empty")
     private Set<RoleType> roles = new HashSet<>();
+
+    @OneToOne(mappedBy = "user")
+    private Client client; // Bi-directionele relatie (optioneel)
 }

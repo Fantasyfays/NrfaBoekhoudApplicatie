@@ -4,6 +4,7 @@ import com.example.nrfaboekhoudapplicatie.dal.DTO.AccountantCreateDTO;
 import com.example.nrfaboekhoudapplicatie.dal.DTO.AccountantResponseDTO;
 import com.example.nrfaboekhoudapplicatie.dal.DTO.AccountantUpdateDTO;
 import com.example.nrfaboekhoudapplicatie.service.AccountantService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,9 +22,10 @@ public class AccountantController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity<AccountantResponseDTO> createAccountant(@RequestBody AccountantCreateDTO dto){
+    public ResponseEntity<AccountantResponseDTO> createAccountant(@Valid @RequestBody AccountantCreateDTO dto) {
         return new ResponseEntity<>(accountantService.createAccountant(dto), HttpStatus.CREATED);
     }
+
 
     @GetMapping("/view/{id}")
     public ResponseEntity<AccountantResponseDTO> getAccountant(@PathVariable long id){

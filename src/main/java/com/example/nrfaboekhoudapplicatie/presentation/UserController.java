@@ -3,9 +3,15 @@ package com.example.nrfaboekhoudapplicatie.presentation;
 import com.example.nrfaboekhoudapplicatie.dal.DTO.CreateUserDTO;
 import com.example.nrfaboekhoudapplicatie.dal.DTO.UpdateUserDTO;
 import com.example.nrfaboekhoudapplicatie.dal.DTO.UserDTO;
+import com.example.nrfaboekhoudapplicatie.dal.DTO.UserLoginDTO;
+import com.example.nrfaboekhoudapplicatie.exceptions.UsernameAlreadyExistsException;
 import com.example.nrfaboekhoudapplicatie.service.UserService;
+import com.example.nrfaboekhoudapplicatie.util.JwtUtil;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,6 +41,11 @@ public class UserController {
         return ResponseEntity.ok(userService.createUser(createUserDTO));
     }
 
+    @ExceptionHandler(UsernameAlreadyExistsException.class)
+    public ResponseEntity<String> handleUsernameAlreadyExists(UsernameAlreadyExistsException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    }
+
     @PutMapping("/update/{id}")
     public ResponseEntity<UserDTO> updateUser(@PathVariable Long id, @Valid @RequestBody UpdateUserDTO updateUserDTO) {
         return userService.updateUser(id, updateUserDTO)
@@ -48,4 +59,20 @@ public class UserController {
                 ? ResponseEntity.noContent().build()
                 : ResponseEntity.notFound().build();
     }
+
+    @PostMapping("/login")
+    public ResponseEntity<String> loginUser(@Valid @RequestBody UserLoginDTO loginDTO) {
+        try {
+            UserDTO user = userService.loginUser(loginDTO);
+
+            // Genereer een token
+            JwtUtil jwtUtil = new JwtUtil();
+            String token = jwtUtil.generateToken(user.getUsername(), loginDTO.getRole());
+
+            return ResponseEntity.ok("Bearer " + token);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials or role.");
+        }
+    }
+
 }
