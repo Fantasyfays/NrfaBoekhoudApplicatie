@@ -1,15 +1,12 @@
 package com.example.nrfaboekhoudapplicatie.presentation;
 
-import com.example.nrfaboekhoudapplicatie.dal.DTO.AccountantCreateDTO;
-import com.example.nrfaboekhoudapplicatie.dal.DTO.AccountantResponseDTO;
-import com.example.nrfaboekhoudapplicatie.dal.DTO.AccountantUpdateDTO;
+import com.example.nrfaboekhoudapplicatie.DTO.*;
 import com.example.nrfaboekhoudapplicatie.service.AccountantService;
-import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/accountants")
@@ -17,35 +14,32 @@ public class AccountantController {
 
     private final AccountantService accountantService;
 
+    @Autowired
     public AccountantController(AccountantService accountantService) {
         this.accountantService = accountantService;
     }
 
-    @PostMapping("/create")
-    public ResponseEntity<AccountantResponseDTO> createAccountant(@Valid @RequestBody AccountantCreateDTO dto) {
-        return new ResponseEntity<>(accountantService.createAccountant(dto), HttpStatus.CREATED);
+    @PostMapping
+    public ResponseEntity<AccountantReadDTO> createAccountant(@RequestBody AccountantCreateDTO createDTO) {
+        AccountantReadDTO createdAccountant = accountantService.createAccountant(createDTO);
+        return ResponseEntity.ok(createdAccountant);
     }
 
-
-    @GetMapping("/view/{id}")
-    public ResponseEntity<AccountantResponseDTO> getAccountant(@PathVariable long id){
-        return new ResponseEntity<>(accountantService.getAccountantById(id), HttpStatus.OK);
-    }
-    @GetMapping("/list")
-    public ResponseEntity<List<AccountantResponseDTO>> getAllAccountants() {
-        return new ResponseEntity<>(accountantService.getAllAccountants(), HttpStatus.OK);
+    @GetMapping("/{id}")
+    public ResponseEntity<AccountantReadDTO> getAccountantById(@PathVariable Long id) {
+        Optional<AccountantReadDTO> accountant = accountantService.getAccountantById(id);
+        return accountant.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @PutMapping("/update/{id}")
-    public ResponseEntity<AccountantResponseDTO> updateAccountant(
-            @PathVariable Long id,
-            @RequestBody AccountantUpdateDTO dto) {
-        return new ResponseEntity<>(accountantService.updateAccountant(id, dto), HttpStatus.OK);
+    @PutMapping
+    public ResponseEntity<AccountantReadDTO> updateAccountant(@RequestBody AccountantUpdateDTO updateDTO) {
+        AccountantReadDTO updatedAccountant = accountantService.updateAccountant(updateDTO);
+        return ResponseEntity.ok(updatedAccountant);
     }
 
-    @DeleteMapping("/delete/{id}")
-    public ResponseEntity<Void> deleteAccountant(@PathVariable Long id) {
-        accountantService.deleteAccountant(id);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    @DeleteMapping
+    public ResponseEntity<Void> deleteAccountant(@RequestBody AccountantDeleteDTO deleteDTO) {
+        accountantService.deleteAccountant(deleteDTO);
+        return ResponseEntity.noContent().build();
     }
 }

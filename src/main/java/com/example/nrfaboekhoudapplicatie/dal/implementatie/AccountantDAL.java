@@ -1,59 +1,105 @@
 package com.example.nrfaboekhoudapplicatie.dal.implementatie;
 
+import com.example.nrfaboekhoudapplicatie.DTO.*;
 import com.example.nrfaboekhoudapplicatie.dal.entity.Accountant;
+import com.example.nrfaboekhoudapplicatie.dal.entity.Role;
+import com.example.nrfaboekhoudapplicatie.dal.entity.User;
 import com.example.nrfaboekhoudapplicatie.dal.repository.AccountantRepository;
-import com.example.nrfaboekhoudapplicatie.service.dalInterfaces.IAccountantDAL;
-import org.springframework.stereotype.Component;
+import com.example.nrfaboekhoudapplicatie.dal.repository.UserRepository;
+import com.example.nrfaboekhoudapplicatie.service.RoleService;
+import com.example.nrfaboekhoudapplicatie.service.interfaces.IAccountantDAL;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Repository;
 
-import java.util.List;
 import java.util.Optional;
 
-@Component
+@Repository
 public class AccountantDAL implements IAccountantDAL {
 
     private final AccountantRepository accountantRepository;
+    private final UserRepository userRepository;
+    private final RoleService roleService;
+    private final BCryptPasswordEncoder passwordEncoder;
 
-    public AccountantDAL(AccountantRepository accountantRepository) {
+    @Autowired
+    public AccountantDAL(AccountantRepository accountantRepository,
+                         UserRepository userRepository,
+                         RoleService roleService,
+                         BCryptPasswordEncoder passwordEncoder) {
         this.accountantRepository = accountantRepository;
+        this.userRepository = userRepository;
+        this.roleService = roleService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
-    public Accountant save(Accountant accountant) {
-        return accountantRepository.save(accountant);
+    public AccountantReadDTO create(AccountantCreateDTO createDTO) {
+        if (userRepository.existsByUsername(createDTO.getUsername())) {
+            throw new IllegalArgumentException("Username already exists");
+        }
+
+        String hashedPassword = passwordEncoder.encode(createDTO.getPassword());
+        Role accountantRole = roleService.getOrCreateRole("ACCOUNTANT");
+
+        User user = new User();
+        user.setUsername(createDTO.getUsername());
+        user.setPassword(hashedPassword);
+        user.getRoles().add(accountantRole);
+
+        User savedUser = userRepository.save(user);
+
+        Accountant accountant = new Accountant();
+        accountant.setUser(savedUser);
+
+        Accountant savedAccountant = accountantRepository.save(accountant);
+
+        return mapToReadDTO(savedAccountant);
     }
 
     @Override
-    public void deleteById(Long id) {
-        accountantRepository.deleteById(id);
+    public Optional<AccountantReadDTO> read(Long id) {
+        return accountantRepository.findById(id)
+                .map(this::mapToReadDTO);
     }
 
     @Override
-    public Optional<Accountant> findById(Long id) {
-        return accountantRepository.findById(id);
+    public Optional<AccountantReadDTO> readByUserId(Long userId) {
+        return accountantRepository.findByUserId(userId)
+                .map(this::mapToReadDTO);
     }
 
     @Override
-    public List<Accountant> findAll() {
-        return accountantRepository.findAll();
+    public AccountantReadDTO update(AccountantUpdateDTO updateDTO) {
+        Accountant accountant = accountantRepository.findById(updateDTO.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Accountant not found"));
+
+        User user = accountant.getUser();
+        user.setUsername(updateDTO.getUsername());
+
+        if (updateDTO.getPassword() != null) {
+            user.setPassword(passwordEncoder.encode(updateDTO.getPassword()));
+        }
+
+        userRepository.save(user);
+
+        return mapToReadDTO(accountant);
     }
 
     @Override
-    public Optional<Accountant> findByUsername(String username) {
-        return accountantRepository.findByUsername(username);
+    public void delete(AccountantDeleteDTO deleteDTO) {
+        Accountant accountant = accountantRepository.findById(deleteDTO.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Accountant not found"));
+
+        accountantRepository.delete(accountant);
     }
 
-    @Override
-    public Optional<Accountant> findByEmail(String email) {
-        return accountantRepository.findByEmail(email);
+    private AccountantReadDTO mapToReadDTO(Accountant accountant) {
+        AccountantReadDTO dto = new AccountantReadDTO();
+        dto.setId(accountant.getId());
+        dto.setUsername(accountant.getUser().getUsername());
+
+        return dto;
     }
 
-    @Override
-    public boolean existsByUsername(String username) {
-        return accountantRepository.existsByUsername(username);
-    }
-
-    @Override
-    public boolean existsByEmail(String email) {
-        return accountantRepository.existsByEmail(email);
-    }
 }

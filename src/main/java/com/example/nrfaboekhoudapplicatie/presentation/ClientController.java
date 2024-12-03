@@ -1,15 +1,13 @@
 package com.example.nrfaboekhoudapplicatie.presentation;
 
-import com.example.nrfaboekhoudapplicatie.dal.DTO.ClientCreateDTO;
-import com.example.nrfaboekhoudapplicatie.dal.DTO.ClientResponseDTO;
-import com.example.nrfaboekhoudapplicatie.dal.DTO.ClientUpdateDTO;
+import com.example.nrfaboekhoudapplicatie.DTO.*;
 import com.example.nrfaboekhoudapplicatie.service.ClientService;
-import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/clients")
@@ -17,39 +15,46 @@ public class ClientController {
 
     private final ClientService clientService;
 
+    @Autowired
     public ClientController(ClientService clientService) {
         this.clientService = clientService;
     }
 
-    @PostMapping("/create")
-    public ResponseEntity<ClientResponseDTO> createClient(@Valid @RequestBody ClientCreateDTO dto) {
-        return new ResponseEntity<>(clientService.createClient(dto), HttpStatus.CREATED);
+    @PostMapping("/accountant/{accountantId}")
+    public ResponseEntity<ClientReadDTO> createClient(@PathVariable Long accountantId, @RequestBody ClientCreateDTO createDTO) {
+        createDTO.setAccountantId(accountantId);
+        ClientReadDTO createdClient = clientService.createClient(createDTO);
+        return ResponseEntity.ok(createdClient);
     }
 
-    @GetMapping("/view/{id}")
-    public ResponseEntity<ClientResponseDTO> getClientById(@PathVariable Long id) {
-        return clientService.getClientById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    @GetMapping("/{id}")
+    public ResponseEntity<ClientReadDTO> getClientById(@PathVariable Long id) {
+        Optional<ClientReadDTO> client = clientService.getClientById(id);
+        return client.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/list")
-    public ResponseEntity<List<ClientResponseDTO>> getAllClients() {
+    @GetMapping
+    public ResponseEntity<List<ClientReadDTO>> getAllClients() {
         return ResponseEntity.ok(clientService.getAllClients());
     }
 
-    @PutMapping("/update/{id}")
-    public ResponseEntity<ClientResponseDTO> updateClient(
-            @PathVariable Long id,
-            @Valid @RequestBody ClientUpdateDTO dto) {
-        return clientService.updateClient(id, dto)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    @GetMapping("/accountant/{accountantId}")
+    public ResponseEntity<List<ClientReadDTO>> getClientsByAccountantId(@PathVariable Long accountantId) {
+        return ResponseEntity.ok(clientService.getClientsByAccountantId(accountantId));
     }
 
-    @DeleteMapping("/delete/{id}")
+    @PutMapping("/{id}")
+    public ResponseEntity<ClientReadDTO> updateClient(@PathVariable Long id, @RequestBody ClientUpdateDTO updateDTO) {
+        updateDTO.setId(id);
+        ClientReadDTO updatedClient = clientService.updateClient(updateDTO);
+        return ResponseEntity.ok(updatedClient);
+    }
+
+    @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteClient(@PathVariable Long id) {
-        clientService.deleteClient(id);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        ClientDeleteDTO deleteDTO = new ClientDeleteDTO();
+        deleteDTO.setId(id);
+        clientService.deleteClient(deleteDTO);
+        return ResponseEntity.noContent().build();
     }
 }
