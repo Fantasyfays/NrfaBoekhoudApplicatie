@@ -28,37 +28,37 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Configureer CORS
-                .csrf(csrf -> csrf.disable()) // Schakel CSRF-bescherming uit voor REST API's
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Gebruik stateless sessies
+                .csrf(csrf -> csrf.disable()) // Schakel CSRF-bescherming uit
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Stateless sessies
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll() // Sta openbare toegang toe tot Swagger en API-documentatie
-                        .requestMatchers("/h2-console/**").permitAll() // Sta openbare toegang toe tot H2-console
-                        .requestMatchers("/api/auth/client/login", "/api/auth/accountant/login").permitAll() // Sta openbare toegang toe tot inlogroutes
-                        .requestMatchers("/api/**").permitAll() // Sta openbare toegang toe tot alle API-routes
-                        .anyRequest().permitAll() // Sta openbare toegang toe tot alle andere verzoeken
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll() // Sta openbare toegang toe tot Swagger
+                        .requestMatchers("/api/auth/login", "/api/auth/register").permitAll() // Openbare toegang tot authenticatie endpoints
+                        .requestMatchers("/api/auth/me", "/api/invoices/**").authenticated() // Vereis authenticatie voor deze endpoints
+                        .anyRequest().permitAll() // Sta toegang toe voor alle andere endpoints
                 )
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class) // Voeg de JWT-filter toe
                 .headers(headers -> headers
-                        .frameOptions(frameOptions -> frameOptions.sameOrigin()) // Sta framing toe vanaf dezelfde oorsprong voor H2-console
+                        .frameOptions(frameOptions -> frameOptions.sameOrigin()) // Sta framing toe voor H2-console
                 );
 
         return http.build();
     }
 
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration corsConfiguration = new CorsConfiguration();
-        corsConfiguration.setAllowedOrigins(List.of("http://localhost:5173")); // Stel toegestane oorsprong in
-        corsConfiguration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS")); // Stel toegestane HTTP-methoden in
+        corsConfiguration.setAllowedOrigins(List.of("http://localhost:5173")); // Voeg toegestane oorsprongen toe
+        corsConfiguration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS")); // Stel toegestane methoden in
         corsConfiguration.setAllowedHeaders(List.of("Authorization", "Content-Type")); // Stel toegestane headers in
         corsConfiguration.setAllowCredentials(true); // Sta credentials toe
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", corsConfiguration); // Registreer CORS-configuratie voor alle paden
+        source.registerCorsConfiguration("/**", corsConfiguration); // Registreer configuratie
         return source;
     }
 
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(); // Definieer BCryptPasswordEncoder bean
+        return new BCryptPasswordEncoder(); // Definieer de BCryptPasswordEncoder bean
     }
 }

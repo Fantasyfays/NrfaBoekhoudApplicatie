@@ -1,91 +1,108 @@
 package com.example.nrfaboekhoudapplicatie.service;
 
-import com.example.nrfaboekhoudapplicatie.DTO.ClientReadDTO;
-import com.example.nrfaboekhoudapplicatie.DTO.AccountantReadDTO;
-import com.example.nrfaboekhoudapplicatie.DTO.LoginResponseDTO;
+import com.example.nrfaboekhoudapplicatie.DTO.User.CreateUserDTO;
+import com.example.nrfaboekhoudapplicatie.DTO.User.UserDTO;
+import com.example.nrfaboekhoudapplicatie.DTO.User.UserLoginDTO;
 import com.example.nrfaboekhoudapplicatie.dal.entity.User;
+import com.example.nrfaboekhoudapplicatie.dal.implementatie.UserNotFoundException;
 import com.example.nrfaboekhoudapplicatie.security.JwtTokenProvider;
 import com.example.nrfaboekhoudapplicatie.service.interfaces.IUserDAL;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
-@Slf4j
 public class AuthService {
-
     private final IUserDAL userDAL;
-    private final ClientService clientService;
-    private final AccountantService accountantService;
     private final BCryptPasswordEncoder passwordEncoder;
-    private final JwtTokenProvider jwtTokenProvider;
+    private static final Logger log = LoggerFactory.getLogger(JwtTokenProvider.class);
 
-    public AuthService(IUserDAL userDAL, ClientService clientService, AccountantService accountantService,
-                       BCryptPasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider) {
+    public AuthService(IUserDAL userDAL, BCryptPasswordEncoder passwordEncoder) {
         this.userDAL = userDAL;
-        this.clientService = clientService;
-        this.accountantService = accountantService;
         this.passwordEncoder = passwordEncoder;
-        this.jwtTokenProvider = jwtTokenProvider;
     }
 
-    public LoginResponseDTO<ClientReadDTO> loginClient(String username, String password) {
-        log.debug("Attempting login for username: {}", username);
-
-        Optional<User> userOptional = userDAL.findByUsernameAndRole(username, "CLIENT");
-        if (!userOptional.isPresent()) {
-            log.error("User not found or role mismatch for username: {}", username);
-            throw new IllegalArgumentException("User not found or role mismatch");
+    public User registerUser(CreateUserDTO createUserDTO) {
+        if (userDAL.findByUsername(createUserDTO.getUsername()).isPresent()) {
+            throw new IllegalArgumentException("Email is already registered");
         }
 
-        User user = userOptional.get();
-        log.debug("Found user: {}", user);
+        User user = User.builder()
+                .username(createUserDTO.getUsername())
+                .email(createUserDTO.getEmail())
+                .password(passwordEncoder.encode(createUserDTO.getPassword()))
+                .role(createUserDTO.getRole())
+                .build();
 
-        if (!passwordEncoder.matches(password, user.getPassword())) {
-            log.error("Invalid password for username: {}", username);
-            throw new IllegalArgumentException("Invalid credentials");
-        }
-
-        ClientReadDTO clientDetails = clientService.getClientByUserId(user.getId())
-                .orElseThrow(() -> {
-                    log.error("No client details found for user ID: {}", user.getId());
-                    return new IllegalArgumentException("No client details found");
-                });
-
-        String token = jwtTokenProvider.createToken(username, "CLIENT", clientDetails);
-        log.debug("Generated JWT token: {}", token);
-
-        return new LoginResponseDTO<>(token, clientDetails);
+        return userDAL.save(user);
     }
 
-    public LoginResponseDTO<AccountantReadDTO> loginAccountant(String username, String password) {
-        log.debug("Attempting login for accountant username: {}", username);
+    public User updateUser(Long id, CreateUserDTO createUserDTO) {
+        User user = userDAL.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        Optional<User> userOptional = userDAL.findByUsernameAndRole(username, "ACCOUNTANT");
-        if (!userOptional.isPresent()) {
-            log.error("User not found or role mismatch for username: {}", username);
-            throw new IllegalArgumentException("User not found or role mismatch");
+        user.setUsername(createUserDTO.getUsername());
+        user.setEmail(createUserDTO.getEmail());
+        if (createUserDTO.getPassword() != null && !createUserDTO.getPassword().isBlank()) {
+            user.setPassword(passwordEncoder.encode(createUserDTO.getPassword()));
+        }
+        user.setRole(createUserDTO.getRole());
+
+        return userDAL.save(user);
+    }
+
+
+    public User loginUser(UserLoginDTO userLoginDTO) {
+        User user = userDAL.findByUsername(userLoginDTO.getUsername())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
+
+        if (!passwordEncoder.matches(userLoginDTO.getPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Invalid email or password");
         }
 
-        User user = userOptional.get();
-        log.debug("Found accountant user: {}", user);
+        UsernamePasswordAuthenticationToken authToken =
+                new UsernamePasswordAuthenticationToken(
+                        user.getEmail(),
+                        null,
+                        List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
+                );
+        SecurityContextHolder.getContext().setAuthentication(authToken);
 
-        if (!passwordEncoder.matches(password, user.getPassword())) {
-            log.error("Invalid password for username: {}", username);
-            throw new IllegalArgumentException("Invalid credentials");
+        return user;
+    }
+
+    public Optional<User> getAuthenticatedUser() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication != null && authentication.isAuthenticated()
+                && !(authentication instanceof AnonymousAuthenticationToken)) {
+            String username = authentication.getName();
+            return userDAL.findByUsername(username);
         }
 
-        AccountantReadDTO accountantDetails = accountantService.getAccountantByUserId(user.getId())
-                .orElseThrow(() -> {
-                    log.error("No accountant details found for user ID: {}", user.getId());
-                    return new IllegalArgumentException("No accountant details found");
-                });
+        return Optional.empty();
+    }
 
-        String token = jwtTokenProvider.createToken(username, "ACCOUNTANT", accountantDetails);
-        log.debug("Generated JWT token: {}", token);
 
-        return new LoginResponseDTO<>(token, accountantDetails);
+    public void deleteUser(Long id) throws UserNotFoundException {
+        if (!userDAL.existsById(id)) {
+            throw new UserNotFoundException("User does not exist");
+        }
+        userDAL.deleteById(id);
+    }
+
+    public List<UserDTO> getAllUsers() {
+        return userDAL.findAll().stream()
+                .map(user -> new UserDTO(user.getId(), user.getUsername(), user.getEmail(), user.getRole().name()))
+                .collect(Collectors.toList());
     }
 }
