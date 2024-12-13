@@ -39,12 +39,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven
 
-      # 5. Build, test, en voer SonarCloud-analyse uit
-      - name: Build, Test, and SonarCloud Analysis
+      # 5. Voer Maven tests uit
+      - name: Run Maven Tests
+        run: |
+          mvn clean test
+
+      # 6. Build, test en voer SonarCloud-analyse uit
+      - name: Build, Verify, and SonarCloud Analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          mvn clean verify sonar:sonar \
+          mvn verify sonar:sonar \
             -Dsonar.projectKey=Fantasyfays_NrfaBoekhoudApplicatie \
             -Dsonar.organization=fantasyfays \
             -Dsonar.host.url=https://sonarcloud.io \
